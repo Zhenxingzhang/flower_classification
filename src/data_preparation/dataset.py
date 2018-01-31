@@ -35,8 +35,8 @@ def load_batch(dataset, batch_size=32, height=299, width=299, is_training=False)
     images, labels = tf.train.shuffle_batch(
         [image, label],
         batch_size=batch_size,
-        num_threads=1,
-        capacity=2 * batch_size,
+        num_threads=2,
+        capacity=10 * batch_size,
         min_after_dequeue=batch_size)
 
     return images, labels

@@ -25,11 +25,14 @@ def train():
         image_size = inception.inception_v1.default_image_size
 
         train_dataset = flowers.get_split('train', flowers_data_dir)
-        images, labels = dataset.load_batch(train_dataset, batch_size, height=image_size, width=image_size)
+        images, labels = dataset.load_batch(train_dataset, batch_size,
+                                            height=image_size, width=image_size, is_training=True)
+
+        tf.summary.image('images', images)
 
         # Create the model:
         with slim.arg_scope(inception.inception_v1_arg_scope()):
-            logits, _ = inception.inception_v1(images, num_classes=5, is_training=False)
+            logits, _ = inception.inception_v1(images, num_classes=5, is_training=True)
 
         # Specify the loss function:
         one_hot_labels = slim.one_hot_encoding(labels, 5)
@@ -38,6 +41,13 @@ def train():
 
         # Create some summaries to visualize the training process:
         tf.summary.scalar('losses/train_Loss', total_loss)
+
+        with tf.name_scope('accuracy'):
+            with tf.name_scope('prediction'):
+                correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+            with tf.name_scope('accuracy'):
+                accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+            tf.summary.scalar('train_accuracy', accuracy)
 
         # Specify the optimizer and create the train op:
         optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
