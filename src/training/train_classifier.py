@@ -13,7 +13,30 @@ import os
 import datetime
 
 
+def get_init_fn(model_dir):
+    """Returns a function run by the chief worker to warm-start the training."""
+    checkpoint_exclude_scopes = ["InceptionV1/Logits", "InceptionV1/AuxLogits"]
+
+    exclusions = [scope.strip() for scope in checkpoint_exclude_scopes]
+
+    variables_to_restore = []
+    for var in slim.get_model_variables():
+        excluded = False
+        for exclusion in exclusions:
+            if var.op.name.startswith(exclusion):
+                excluded = True
+                break
+        if not excluded:
+            variables_to_restore.append(var)
+
+    return slim.assign_from_checkpoint_fn(
+        os.path.join(model_dir, 'inception_v1.ckpt'), variables_to_restore)
+
+
 def train():
+    # Specify where the Model, trained on ImageNet, was saved.
+    inception_v1_model_dir = "/data/inception/v1"
+
     # This might take a few minutes.
     TRAIN_SUMMARY_DIR = "/data/summary/flowers/train"
     l_rate = 0.001
@@ -72,6 +95,7 @@ def train():
             logdir=checkpoint_dir,
             number_of_steps=1000,  # For speed, we just do 1 epoch
             save_summaries_secs=1,
+            init_fn=get_init_fn(inception_v1_model_dir),
             summary_writer=train_summ_writer)
 
         print('Finished training. Final batch loss %d' % final_loss)
