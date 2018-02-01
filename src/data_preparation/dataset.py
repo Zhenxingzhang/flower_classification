@@ -31,16 +31,15 @@ def load_batch(dataset, batch_size=32, height=299, width=299, is_training=False)
     # Preprocess image for usage by Inception.
     image = inception_preprocessing.preprocess_image(image_raw, height, width, is_training=is_training)
 
-
     # Batch it up.
-    images, labels = tf.train.shuffle_batch(
+    images_, labels_ = tf.train.shuffle_batch(
         [image, label],
         batch_size=batch_size,
         num_threads=2,
         capacity=10 * batch_size,
         min_after_dequeue=batch_size)
 
-    return images, labels
+    return images_, labels_
 
 
 if __name__ == '__main__':

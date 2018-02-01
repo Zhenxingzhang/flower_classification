@@ -35,7 +35,7 @@ def train():
 
         train_dataset = flowers.get_split('train', flowers_data_dir)
         images, labels = dataset.load_batch(train_dataset, batch_size,
-                                            height=image_size, width=image_size, is_training=True)
+                                            height=image_size, width=image_size, is_training=False)
 
         tf.summary.image('images/train', images)
 
