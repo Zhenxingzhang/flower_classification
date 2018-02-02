@@ -19,18 +19,9 @@ def get_init_fn(model_dir):
 
     exclusions = [scope.strip() for scope in checkpoint_exclude_scopes]
 
-    variables_to_restore = []
-    for var in slim.get_model_variables():
-        excluded = False
-        for exclusion in exclusions:
-            if var.op.name.startswith(exclusion):
-                excluded = True
-                break
-        if not excluded:
-            variables_to_restore.append(var)
+    variables_to_restore = slim.get_variables_to_restore(exclude=exclusions)
 
-    return slim.assign_from_checkpoint_fn(
-        os.path.join(model_dir, 'inception_v1.ckpt'), variables_to_restore)
+    return slim.assign_from_checkpoint_fn(os.path.join(model_dir, 'inception_v1.ckpt'), variables_to_restore)
 
 
 def train():

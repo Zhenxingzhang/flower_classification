@@ -1,14 +1,13 @@
+import math
+import datetime
 import tensorflow as tf
+from tensorflow.contrib.slim.nets import inception
+from src.data_preparation import dataset
 
 import sys, os
 sys.path.append("/data/slim/models/research/slim/")
 from datasets import flowers
 from preprocessing import inception_preprocessing
-from nets import inception
-
-from src.data_preparation import dataset
-import math
-import datetime
 
 
 if __name__ == '__main__':
@@ -18,12 +17,12 @@ if __name__ == '__main__':
     l_rate = 0.001
 
     CHECKPOINT_DIR = '/data/checkpoints/flowers/'
-    checkpoint_dir = os.path.join(CHECKPOINT_DIR, model_name, str(l_rate))
+    checkpoint_path = os.path.join(CHECKPOINT_DIR, model_name, str(l_rate))
 
     VAL_SUMMARY_DIR = "/data/summary/flowers/val"
     log_dir = os.path.join(VAL_SUMMARY_DIR, model_name, str(l_rate), datetime.datetime.now().strftime("%Y%m%d-%H%M"))
     flowers_data_dir = "/data/flowers"
-    batch_size = 64
+    batch_size = 10
 
     image_size = inception.inception_v1.default_image_size
 
@@ -37,7 +36,6 @@ if __name__ == '__main__':
                                             height=image_size, width=image_size, is_training=False)
 
         summary_ops.append(tf.summary.image('images/val', images))
-
 
         # Create the model:
         with slim.arg_scope(inception.inception_v1_arg_scope()):
@@ -54,10 +52,9 @@ if __name__ == '__main__':
 
         # Choose the metrics to compute:
         names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-            'accuracy/eval_accuracy': slim.metrics.streaming_accuracy(predictions, labels),
-            'eval/Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1),
-            # 'eval/precision': slim.metrics.precision(predictions, labels),
-            # 'eval/recall': slim.metrics.recall(mean_relative_errors, 0.3),
+            "eval/accuracy": slim.metrics.streaming_accuracy(predictions, labels),
+            'eval/precision': slim.metrics.streaming_precision(predictions, labels),
+            'eval/Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
         })
 
         # Create the summary ops such that they also print out to std output:
@@ -66,14 +63,14 @@ if __name__ == '__main__':
             op = tf.Print(op, [metric_value], metric_name)
             summary_ops.append(op)
 
-        num_examples = 1000
+        num_examples = 10
         num_batches = math.ceil(num_examples / float(batch_size))
 
         # Setup the global step.
         slim.get_or_create_global_step()
 
         # How often to run the evaluation.
-        eval_interval_secs = 1
+        eval_interval_secs = 10
         slim.evaluation.evaluation_loop(
             '',
             checkpoint_dir,
