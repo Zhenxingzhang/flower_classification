@@ -19,7 +19,16 @@ def get_init_fn(model_dir):
 
     exclusions = [scope.strip() for scope in checkpoint_exclude_scopes]
 
-    variables_to_restore = slim.get_variables_to_restore(exclude=exclusions)
+    # variables_to_restore = slim.get_variables_to_restore(exclude=exclusions)
+    variables_to_restore = []
+    for var in slim.get_model_variables():
+        excluded = False
+        for exclusion in exclusions:
+            if var.op.name.startswith(exclusion):
+                excluded = True
+                break
+        if not excluded:
+            variables_to_restore.append(var)
 
     return slim.assign_from_checkpoint_fn(os.path.join(model_dir, 'inception_v1.ckpt'), variables_to_restore)
 
@@ -32,7 +41,7 @@ def train():
     TRAIN_SUMMARY_DIR = "/data/summary/flowers/train"
     l_rate = 0.001
     CHECKPOINT_DIR = '/data/checkpoints/flowers/'
-    model_name = "slim_inception_v1"
+    model_name = "slim_inception_v1_ft"
     flowers_data_dir = "/data/flowers"
     batch_size = 64
 
@@ -65,12 +74,15 @@ def train():
         # Create some summaries to visualize the training process:
         tf.summary.scalar('losses/total_loss', total_loss)
 
-        with tf.name_scope('accuracy'):
-            with tf.name_scope('prediction'):
-                correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
-            with tf.name_scope('accuracy'):
-                accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            tf.summary.scalar('accuracy', accuracy)
+        # with tf.name_scope('accuracy'):
+        #     with tf.name_scope('prediction'):
+        #         correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        #     with tf.name_scope('accuracy'):
+        #         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        #     tf.summary.scalar('accuracy', accuracy)
+        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        tf.summary.scalar('accuracy', accuracy)
 
         # Specify the optimizer and create the train op:
         optimizer = tf.train.AdamOptimizer(learning_rate=l_rate)
@@ -85,6 +97,7 @@ def train():
             train_op,
             logdir=checkpoint_dir,
             number_of_steps=1000,  # For speed, we just do 1 epoch
+            save_interval_secs=10,
             save_summaries_secs=1,
             init_fn=get_init_fn(inception_v1_model_dir),
             summary_writer=train_summ_writer)
