@@ -18,7 +18,7 @@ if __name__ == '__main__':
     slim = tf.contrib.slim
 
     model_name = "slim_inception_v1_ft"
-    l_rate = 0.001
+    l_rate = 0.0001
 
     CHECKPOINT_DIR = '/data/checkpoints/flowers/'
     checkpoint_dir = os.path.join(CHECKPOINT_DIR, model_name, str(l_rate))
@@ -54,18 +54,23 @@ if __name__ == '__main__':
         # Create some summaries to visualize the training process:
         summary_ops.append(tf.summary.scalar('losses/total_loss', total_loss))
 
+        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        summary_ops.append(tf.summary.scalar('accuracy', accuracy))
+
         # Choose the metrics to compute:
-        names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-            "accuracy": slim.metrics.streaming_accuracy(predictions, labels),
-            'precision': slim.metrics.streaming_precision(predictions, labels),
-            'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
-        })
+        # names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
+        #     "accuracy": slim.metrics.streaming_accuracy(predictions, labels),
+        #     'precision': slim.metrics.streaming_precision(predictions, labels),
+        #     'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
+        # })
 
         # Create the summary ops such that they also print out to std output:
-        for metric_name, metric_value in names_to_values.iteritems():
-            op = tf.summary.scalar(metric_name, metric_value)
-            op = tf.Print(op, [metric_value], metric_name)
-            summary_ops.append(op)
+        # for metric_name, metric_value in names_to_values.iteritems():
+        #     print(metric_name)
+        #     op = tf.summary.scalar(metric_name, metric_value)
+        #     op = tf.Print(op, [metric_value], metric_name)
+        #     summary_ops.append(op)
 
         num_examples = 200
         num_batches = math.ceil(num_examples / float(batch_size))
@@ -80,6 +85,6 @@ if __name__ == '__main__':
             checkpoint_dir,
             log_dir,
             num_evals=num_batches,
-            eval_op=names_to_updates.values(),
+            # eval_op=names_to_updates.values(),
             summary_op=tf.summary.merge(summary_ops),
             eval_interval_secs=eval_interval_secs)

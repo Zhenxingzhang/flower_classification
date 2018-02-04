@@ -39,7 +39,7 @@ def train():
 
     # This might take a few minutes.
     TRAIN_SUMMARY_DIR = "/data/summary/flowers/train"
-    l_rate = 0.001
+    l_rate = 0.0001
     CHECKPOINT_DIR = '/data/checkpoints/flowers/'
     model_name = "slim_inception_v1_ft"
     flowers_data_dir = "/data/flowers"
@@ -58,7 +58,7 @@ def train():
 
         train_dataset = flowers.get_split('train', flowers_data_dir)
         images, labels = dataset.load_batch(train_dataset, batch_size,
-                                            height=image_size, width=image_size, is_training=False)
+                                            height=image_size, width=image_size, is_training=True)
 
         tf.summary.image('images/train', images)
 
@@ -67,9 +67,9 @@ def train():
             logits, _ = inception.inception_v1(images, num_classes=5, is_training=True)
 
         # Specify the loss function:
-        one_hot_labels = slim.one_hot_encoding(labels, 5)
-        slim.losses.softmax_cross_entropy(logits, one_hot_labels)
-        total_loss = slim.losses.get_total_loss()
+        # one_hot_labels = slim.one_hot_encoding(labels, 5)
+        tf.losses.sparse_softmax_cross_entropy(labels, logits)
+        total_loss = tf.losses.get_total_loss()
 
         # Create some summaries to visualize the training process:
         tf.summary.scalar('losses/total_loss', total_loss)

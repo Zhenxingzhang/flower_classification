@@ -40,8 +40,8 @@ if __name__ == '__main__':
 
     # Choose the metrics to compute:
     names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        "eval/accuracy": slim.metrics.streaming_accuracy(predictions, labels),
-        'eval/precision': slim.metrics.streaming_precision(predictions, labels),
+        "accuracy": slim.metrics.streaming_accuracy(predictions, labels),
+        'precision': slim.metrics.streaming_precision(predictions, labels),
     })
 
     # Evaluate the model using 1000 batches of data:
