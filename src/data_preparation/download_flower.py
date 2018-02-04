@@ -10,10 +10,10 @@ if __name__ == '__main__':
     if not tf.gfile.Exists(flowers_data_dir):
         tf.gfile.MakeDirs(flowers_data_dir)
 
-    # dataset_utils.download_and_uncompress_tarball(url, flowers_data_dir)
+    dataset_utils.download_and_uncompress_tarball(url, flowers_data_dir)
 
-    url = "http://download.tensorflow.org/models/inception_resnet_v2_2016_08_30.tar.gz"
-    checkpoints_dir = '/data/inception_resnet/v2'
+    url = "http://download.tensorflow.org/models/inception_v1_2016_08_28.tar.gz"
+    checkpoints_dir = '/data/inception/v1'
 
     if not tf.gfile.Exists(checkpoints_dir):
         tf.gfile.MakeDirs(checkpoints_dir)
