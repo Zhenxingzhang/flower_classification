@@ -39,7 +39,7 @@ def train():
 
     # This might take a few minutes.
     TRAIN_SUMMARY_DIR = "/data/summary/flowers/train"
-    l_rate = 0.0001
+    l_rate = 0.0002
     CHECKPOINT_DIR = '/data/checkpoints/flowers/'
     model_name = "slim_inception_v1_ft"
     flowers_data_dir = "/data/flowers"
@@ -84,9 +84,15 @@ def train():
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         tf.summary.scalar('accuracy', accuracy)
 
+        global_step = slim.get_or_create_global_step()
+
+        learning_rate = tf.train.exponential_decay(l_rate, global_step,
+                                                   100, 0.5, staircase=True)
+
         # Specify the optimizer and create the train op:
-        optimizer = tf.train.AdamOptimizer(learning_rate=l_rate)
-        train_op = slim.learning.create_train_op(total_loss, optimizer)
+        # optimizer = tf.train.AdamOptimizer(learning_rate, global_step=global_step)
+        # train_op = slim.learning.create_train_op(total_loss, optimizer)
+        train_op = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
         train_summ_writer = tf.summary.FileWriter(
             os.path.join(TRAIN_SUMMARY_DIR, model_name, str(l_rate),
@@ -95,8 +101,9 @@ def train():
         # Run the training:
         final_loss = slim.learning.train(
             train_op,
+            global_step=global_step,
             logdir=checkpoint_dir,
-            number_of_steps=1000,  # For speed, we just do 1 epoch
+            number_of_steps=300,  # For speed, we just do 1 epoch
             save_interval_secs=10,
             save_summaries_secs=1,
             init_fn=get_init_fn(inception_v1_model_dir),
