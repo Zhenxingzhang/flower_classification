@@ -6,7 +6,7 @@ from datasets import flowers
 from preprocessing import inception_preprocessing
 
 from src.data_preparation import dataset
-from nets import inception
+from nets import inception, nets_factory
 
 import tensorflow as tf
 import os
@@ -39,7 +39,7 @@ def train():
 
     # This might take a few minutes.
     TRAIN_SUMMARY_DIR = "/data/summary/flowers/train"
-    l_rate = 0.0002
+    l_rate = 0.0001
     CHECKPOINT_DIR = '/data/checkpoints/flowers/'
     model_name = "slim_inception_v1_ft"
     flowers_data_dir = "/data/flowers"
@@ -63,8 +63,8 @@ def train():
         tf.summary.image('images/train', images)
 
         # Create the model:
-        with slim.arg_scope(inception.inception_v1_arg_scope()):
-            logits, _ = inception.inception_v1(images, num_classes=5, is_training=True)
+        net_fn = nets_factory.get_network_fn("inception_v1", dataset.num_classes, is_training=True)
+        logits, end_points = net_fn(images)
 
         # Specify the loss function:
         # one_hot_labels = slim.one_hot_encoding(labels, 5)
@@ -87,12 +87,13 @@ def train():
         global_step = slim.get_or_create_global_step()
 
         learning_rate = tf.train.exponential_decay(l_rate, global_step,
-                                                   100, 0.5, staircase=True)
+                                                   100, 0.7, staircase=True)
 
         # Specify the optimizer and create the train op:
         # optimizer = tf.train.AdamOptimizer(learning_rate, global_step=global_step)
         # train_op = slim.learning.create_train_op(total_loss, optimizer)
-        train_op = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+        train_op = slim.learning.create_train_op(total_loss, optimizer)
 
         train_summ_writer = tf.summary.FileWriter(
             os.path.join(TRAIN_SUMMARY_DIR, model_name, str(l_rate),

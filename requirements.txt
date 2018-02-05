@@ -10,3 +10,4 @@ kaggle-cli
 pymongo
 scikit-image
 tqdm
+dictionaries

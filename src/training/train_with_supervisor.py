@@ -4,37 +4,30 @@ import sys
 sys.path.append("/data/slim/models/research/slim/")
 from datasets import flowers
 from preprocessing import inception_preprocessing
+from src.utils import helper
 
 from src.data_preparation import dataset
-from nets import inception_resnet_v2
+from nets import nets_factory
 
 import tensorflow as tf
 import os
 import time
 import logging
+import datetime
+import argparse
 
 
-def run():
+def run(config):
 
     # Specify where the Model, trained on ImageNet, was saved.
-    fine_tune_model_dir = "/data/inception_resnet/v2/inception_resnet_v2_2016_08_30.ckpt"
-
-    model_name = "inception_resnet_v2_ft"
 
     # This might take a few minutes.
-    TRAIN_SUMMARY_DIR = os.path.join("/data/summary/flowers/", model_name, "train")
-    initial_learning_rate = 0.0001
-    learning_rate_decay_factor = 0.7
-    CHECKPOINT_DIR = '/data/checkpoints/flowers/'
-    flowers_data_dir = "/data/flowers"
-    batch_size = 32
-    num_epochs = 10
-
-    num_epochs_before_decay = 2
+    train_summary_dir = os.path.join("/data/summary/flowers/", config.MODEL_NAME, "train")
+    checkpoint_dir = os.path.join('/data/checkpoints/flowers/', config.MODEL_NAME)
 
     # Create the log directory here. Must be done here otherwise import will activate this unneededly.
-    if not os.path.exists(fine_tune_model_dir):
-        os.mkdir(fine_tune_model_dir)
+    if not os.path.exists(checkpoint_dir):
+        os.mkdir(checkpoint_dir)
 
     # ======================= TRAINING PROCESS =========================
     # Now we start to construct the graph and build our model
@@ -42,28 +35,26 @@ def run():
         tf.logging.set_verbosity(tf.logging.INFO)  # Set the verbosity to INFO level
 
         # First create the dataset and load one batch
-        train_dataset = flowers.get_split('train', flowers_data_dir)
-        images, labels = dataset.load_batch(train_dataset, batch_size=batch_size)
+        train_dataset = flowers.get_split('train', config.TRAIN_TF_RECORDS)
+        images, labels = dataset.load_batch(train_dataset, batch_size=config.TRAIN_BATCH_SIZE,
+                                            height=config.INPUT_HEIGHT, width=config.INPUT_WIDTH)
 
         # Know the number steps to take before decaying the learning rate and batches per epoch
-        num_batches_per_epoch = int(dataset.num_samples / batch_size)
+        num_batches_per_epoch = int(dataset.num_samples / config.TRAIN_BATCH_SIZE)
         num_steps_per_epoch = num_batches_per_epoch  # Because one step is one batch processed
-        decay_steps = int(num_epochs_before_decay * num_steps_per_epoch)
+        decay_steps = int(config.TRAIN_EPOCHS_BEFORE_DECAY * num_steps_per_epoch)
 
         # Create the model inference
-        with slim.arg_scope(inception_resnet_v2.inception_resnet_v2_arg_scope()):
-            logits, end_points = \
-                inception_resnet_v2.inception_resnet_v2(images, num_classes=dataset.num_classes, is_training=True)
+        net_fn = nets_factory.get_network_fn(config.PRETAIN_MODEL, dataset.num_classes, is_training=True)
+        logits, end_points = net_fn(images)
 
         # Define the scopes that you want to exclude for restoration
-        exclude = ['InceptionResnetV2/Logits', 'InceptionResnetV2/AuxLogits']
+        # exclude = ['InceptionResnetV2/Logits', 'InceptionResnetV2/AuxLogits']
+        exclude = ["InceptionV1/Logits", "InceptionV1/AuxLogits"]
         variables_to_restore = slim.get_variables_to_restore(exclude=exclude)
 
-        # Perform one-hot-encoding of the labels (Try one-hot-encoding within the load_batch function!)
-        one_hot_labels = slim.one_hot_encoding(labels, dataset.num_classes)
-
         # Performs the equivalent to tf.nn.sparse_softmax_cross_entropy_with_logits but enhanced with checks
-        loss = tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=logits)
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
         total_loss = tf.losses.get_total_loss()  # obtain the regularization losses as well
 
         # Create the global step for monitoring the learning_rate and training.
@@ -71,10 +62,10 @@ def run():
 
         # Define your exponentially decaying learning rate
         lr = tf.train.exponential_decay(
-            learning_rate=initial_learning_rate,
+            learning_rate=config.TRAIN_LEARNING_RATE,
             global_step=global_step,
             decay_steps=decay_steps,
-            decay_rate=learning_rate_decay_factor,
+            decay_rate=config.TRAIN_RATE_DECAY_FACTOR,
             staircase=True)
 
         # Now we can define the optimizer that takes on the learning rate
@@ -86,7 +77,7 @@ def run():
         # State the metrics that you want to predict. We get a predictions that is not one_hot_encoded.
         predictions = tf.argmax(end_points['Predictions'], 1)
         probabilities = end_points['Predictions']
-        accuracy, accuracy_update = tf.contrib.metrics.streaming_accuracy(predictions, labels)
+        accuracy, accuracy_update = tf.metrics.accuracy(labels, predictions)
         metrics_op = tf.group(accuracy_update, probabilities)
 
         # Now finally create all the summaries you need to monitor and group them into one summary op.
@@ -107,7 +98,7 @@ def run():
             time_elapsed = time.time() - start_time
 
             # Run the logging to print some results
-            print('global step %s: loss: %.4f (%.2f sec/step)', global_step_count, total_loss, time_elapsed)
+            print('global step %s: loss: %.4f (%.2f sec/step)'.format(global_step_count, total_loss, time_elapsed))
 
             return total_loss_, global_step_count
 
@@ -115,18 +106,23 @@ def run():
         saver = tf.train.Saver(variables_to_restore)
 
         def restore_fn(sess):
-            return saver.restore(sess, fine_tune_model_dir)
+            return saver.restore(sess, config.PRETAIN_MODEL_PATH)
+
+        train_summ_writer = tf.summary.FileWriter(
+            os.path.join(train_summary_dir, config.MODEL_NAME, str(config.TRAIN_LEARNING_RATE),
+                         datetime.datetime.now().strftime("%Y%m%d-%H%M")), graph)
 
         # Define your supervisor for running a managed session.
         # Do not run the summary_op automatically or else it will consume too much memory
-        sv = tf.train.Supervisor(logdir=TRAIN_SUMMARY_DIR, summary_op=None, init_fn=restore_fn)
+        sv = tf.train.Supervisor(logdir=train_summary_dir, summary_op=None, init_fn=restore_fn,
+                                 summary_writer=train_summ_writer)
 
         # Run the managed session
         with sv.managed_session() as sess:
-            for step in xrange(num_steps_per_epoch * num_epochs):
+            for step in xrange(num_steps_per_epoch * config.TRAIN_EPOCHS_COUNT):
                 # At the start of every epoch, show the vital information:
                 if step % num_batches_per_epoch == 0:
-                    print('Epoch %s/%s', step / num_batches_per_epoch + 1, num_epochs)
+                    print('Epoch %s/%s', step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT)
                     learning_rate_value, accuracy_value = sess.run([lr, accuracy])
                     print('Current Learning Rate: %s', learning_rate_value)
                     print('Current Streaming Accuracy: %s', accuracy_value)
@@ -134,8 +130,6 @@ def run():
                     # optionally, print your logits and predictions for a sanity check that things are going fine.
                     logits_value, probabilities_value, predictions_value, labels_value = sess.run(
                         [logits, probabilities, predictions, labels])
-                    # print 'logits: \n', logits_value
-                    # print 'Probabilities: \n', probabilities_value
                     print 'predictions: \n', predictions_value
                     print 'Labels:\n', labels_value
 
@@ -155,9 +149,15 @@ def run():
 
             # Once all the training has been done, save the log files and checkpoint model
             print('Finished training! Saving model to disk now.')
-            # saver.save(sess, "./flowers_model.ckpt")
-            sv.saver.save(sess, sv.save_path, global_step=sv.global_step)
+            sv.saver.save(sess, sv.save_path)
 
 
 if __name__ == '__main__':
-    run()
+    parser = argparse.ArgumentParser(description='Default argument')
+    parser.add_argument('-c',
+                        dest="config_filename", type=str, required=True,
+                        help='the config file name must be provide')
+    args = parser.parse_args()
+
+    arg_config = helper.parse_config_file(args.config_filename)
+    run(arg_config)
