@@ -98,7 +98,7 @@ def run(config):
             time_elapsed = time.time() - start_time
 
             # Run the logging to print some results
-            print('global step %s: loss: %.4f (%.2f sec/step)'.format(global_step_count, total_loss, time_elapsed))
+            print('global step {}: loss: {:.4f} ({:.2f} sec/step)'.format(global_step_count, total_loss_, time_elapsed))
 
             return total_loss_, global_step_count
 
@@ -122,10 +122,10 @@ def run(config):
             for step in xrange(num_steps_per_epoch * config.TRAIN_EPOCHS_COUNT):
                 # At the start of every epoch, show the vital information:
                 if step % num_batches_per_epoch == 0:
-                    print('Epoch %s/%s', step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT)
+                    print('Epoch {:d}/{:d}', step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT)
                     learning_rate_value, accuracy_value = sess.run([lr, accuracy])
-                    print('Current Learning Rate: %s', learning_rate_value)
-                    print('Current Streaming Accuracy: %s', accuracy_value)
+                    print('Current Learning Rate: {:f}'.format(learning_rate_value))
+                    print('Current Streaming Accuracy: {:f}', accuracy_value)
 
                     # optionally, print your logits and predictions for a sanity check that things are going fine.
                     logits_value, probabilities_value, predictions_value, labels_value = sess.run(
@@ -144,8 +144,8 @@ def run(config):
                     loss, _ = train_step(sess, train_op, sv.global_step)
 
             # We log the final training loss and accuracy
-            print('Final Loss: %s', loss)
-            print('Final Accuracy: %s', sess.run(accuracy))
+            print('Final Loss: {:f}'.format(loss))
+            print('Final Accuracy: {:f}'.format(sess.run(accuracy)))
 
             # Once all the training has been done, save the log files and checkpoint model
             print('Finished training! Saving model to disk now.')

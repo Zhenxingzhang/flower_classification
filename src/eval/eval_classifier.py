@@ -2,10 +2,13 @@ import math
 import datetime
 import os
 import sys
+import argparse
 
 import tensorflow as tf
 from tensorflow.contrib.slim.nets import inception
 from src.data_preparation import dataset
+from src.utils import helper
+from nets import nets_factory
 
 sys.path.append("/data/slim/models/research/slim/")
 from datasets import flowers
@@ -17,34 +20,32 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 if __name__ == '__main__':
     slim = tf.contrib.slim
 
-    model_name = "slim_inception_v1_ft"
-    l_rate = 0.0001
+    parser = argparse.ArgumentParser(description='Default argument')
+    parser.add_argument('-c',
+                        dest="config_filename", type=str, required=True,
+                        help='the config file name must be provide')
+    args = parser.parse_args()
 
-    CHECKPOINT_DIR = '/data/checkpoints/flowers/'
-    checkpoint_dir = os.path.join(CHECKPOINT_DIR, model_name, str(l_rate))
+    config = helper.parse_config_file(args.config_filename)
 
-    VAL_SUMMARY_DIR = "/data/summary/flowers/val"
-    log_dir = os.path.join(VAL_SUMMARY_DIR, model_name, str(l_rate), datetime.datetime.now().strftime("%Y%m%d-%H%M"))
-    flowers_data_dir = "/data/flowers"
-    batch_size = 100
-
-    image_size = inception.inception_v1.default_image_size
+    eval_summary_dir = os.path.join("/data/summary/flowers/", config.MODEL_NAME, "eval")
+    checkpoint_dir = os.path.join('/data/checkpoints/flowers/', config.MODEL_NAME)
 
     # This might take a few minutes.
     with tf.Graph().as_default():
         summary_ops = []
 
         # Load the data
-        train_dataset = flowers.get_split('validation', flowers_data_dir)
-        images, labels = dataset.load_batch(train_dataset, batch_size,
-                                            height=image_size, width=image_size, is_training=False)
+        train_dataset = flowers.get_split('validation', config.TRAIN_TF_RECORDS)
+        images, labels = dataset.load_batch(train_dataset, config.EVAL_BATCH_SIZE,
+                                            height=config.INPUT_HEIGHT, width=config.INPUT_WIDTH, is_training=False)
 
         summary_ops.append(tf.summary.image('images/val', images))
 
-        # Create the model:
-        with slim.arg_scope(inception.inception_v1_arg_scope()):
-            logits, _ = inception.inception_v1(images, num_classes=5, is_training=False)
-            predictions = tf.argmax(logits, 1)
+        # Create the model inference
+        net_fn = nets_factory.get_network_fn(config.PRETAIN_MODEL, dataset.num_classes, is_training=False)
+        logits, end_points = net_fn(images)
+        predictions = tf.argmax(logits, 1)
 
         # Specify the loss function:
         one_hot_labels = slim.one_hot_encoding(labels, 5)
@@ -54,26 +55,26 @@ if __name__ == '__main__':
         # Create some summaries to visualize the training process:
         summary_ops.append(tf.summary.scalar('losses/total_loss', total_loss))
 
-        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        summary_ops.append(tf.summary.scalar('accuracy', accuracy))
+        # correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        # summary_ops.append(tf.summary.scalar('accuracy', accuracy))
 
         # Choose the metrics to compute:
-        # names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        #     "accuracy": slim.metrics.streaming_accuracy(predictions, labels),
-        #     'precision': slim.metrics.streaming_precision(predictions, labels),
-        #     'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
-        # })
+        names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
+            "accuracy": tf.metrics.accuracy(labels, predictions),
+            'precision': slim.metrics.streaming_precision(predictions, labels),
+            'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
+        })
 
         # Create the summary ops such that they also print out to std output:
-        # for metric_name, metric_value in names_to_values.iteritems():
-        #     print(metric_name)
-        #     op = tf.summary.scalar(metric_name, metric_value)
-        #     op = tf.Print(op, [metric_value], metric_name)
-        #     summary_ops.append(op)
+        for metric_name, metric_value in names_to_values.iteritems():
+            print(metric_name)
+            op = tf.summary.scalar(metric_name, metric_value)
+            op = tf.Print(op, [metric_value], metric_name)
+            summary_ops.append(op)
 
         num_examples = 200
-        num_batches = math.ceil(num_examples / float(batch_size))
+        num_batches = math.ceil(num_examples / config.EVAL_BATCH_SIZE)
 
         # Setup the global step.
         slim.get_or_create_global_step()
@@ -83,8 +84,8 @@ if __name__ == '__main__':
         slim.evaluation.evaluation_loop(
             '',
             checkpoint_dir,
-            log_dir,
+            eval_summary_dir,
             num_evals=num_batches,
-            # eval_op=names_to_updates.values(),
+            eval_op=names_to_updates.values(),
             summary_op=tf.summary.merge(summary_ops),
             eval_interval_secs=eval_interval_secs)

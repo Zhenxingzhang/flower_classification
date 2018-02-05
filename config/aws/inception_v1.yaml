@@ -2,7 +2,7 @@ MODEL:
     MODEL_NAME: "inception_v1_flowers"
     PRETRAIN_MODEL: "inception_v1"
     PRETAIN_MODEL_URL : "http://download.tensorflow.org/models/inception_v1_2016_08_28.tar.gz"
-    PRETAIN_MODEL_PATH : "/data/pretain_model/inception/v1/inception_v1.ckpt"
+    PRETAIN_MODEL_PATH : "/data/pretain_model/inception_v1/inception_v1.ckpt"
     EXCLUDE_NODES:
      - "InceptionV1/Logits"
      - "InceptionV1/AuxLogits"
