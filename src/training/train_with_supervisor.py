@@ -113,7 +113,7 @@ def run(config):
         # Define your supervisor for running a managed session.
         # Do not run the summary_op automatically or else it will consume too much memory
         sv = tf.train.Supervisor(
-            save_checkpoint_secs=30,
+            save_model_secs=30,
             logdir=checkpoint_dir,
             summary_op=None,
             init_fn=restore_fn,
@@ -124,7 +124,7 @@ def run(config):
             for step in xrange(num_steps_per_epoch * config.TRAIN_EPOCHS_COUNT):
                 # At the start of every epoch, show the vital information:
                 if step % num_batches_per_epoch == 0:
-                    print('Epoch {:D}/{:D}'.format(step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT))
+                    print('Epoch {}/{}'.format(step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT))
                     learning_rate_value, accuracy_value = sess.run([lr, accuracy])
                     print('Current Learning Rate: {:f}'.format(learning_rate_value))
                     print('Current Streaming Accuracy: {:f}'.format(accuracy_value))
