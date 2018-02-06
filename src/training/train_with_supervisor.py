@@ -22,8 +22,8 @@ def run(config):
     # Specify where the Model, trained on ImageNet, was saved.
 
     # This might take a few minutes.
-    train_summary_dir = os.path.join("/data/summary/flowers/", config.MODEL_NAME, "train")
-    checkpoint_dir = os.path.join('/data/checkpoints/flowers/', config.MODEL_NAME)
+    train_summary_dir = os.path.join("/data/summary/flowers/", config.MODEL_NAME, str(config.TRAIN_LEARNING_RATE), "train")
+    checkpoint_dir = os.path.join('/data/checkpoints/flowers/', config.MODEL_NAME, str(config.TRAIN_LEARNING_RATE))
 
     # Create the log directory here. Must be done here otherwise import will activate this unneededly.
     if not os.path.exists(checkpoint_dir):
@@ -81,7 +81,7 @@ def run(config):
         metrics_op = tf.group(accuracy_update, probabilities)
 
         # Now finally create all the summaries you need to monitor and group them into one summary op.
-        tf.summary.scalar('losses/Total_Loss', total_loss)
+        tf.summary.scalar('losses/total_loss', total_loss)
         tf.summary.scalar('accuracy', accuracy)
         tf.summary.scalar('learning_rate', lr)
         my_summary_op = tf.summary.merge_all()
@@ -108,24 +108,26 @@ def run(config):
         def restore_fn(sess):
             return saver.restore(sess, config.PRETAIN_MODEL_PATH)
 
-        train_summ_writer = tf.summary.FileWriter(
-            os.path.join(train_summary_dir, config.MODEL_NAME, str(config.TRAIN_LEARNING_RATE),
-                         datetime.datetime.now().strftime("%Y%m%d-%H%M")), graph)
+        train_summ_writer = tf.summary.FileWriter(train_summary_dir, graph)
 
         # Define your supervisor for running a managed session.
         # Do not run the summary_op automatically or else it will consume too much memory
-        sv = tf.train.Supervisor(logdir=train_summary_dir, summary_op=None, init_fn=restore_fn,
-                                 summary_writer=train_summ_writer)
+        sv = tf.train.Supervisor(
+            save_checkpoint_secs=30,
+            logdir=checkpoint_dir,
+            summary_op=None,
+            init_fn=restore_fn,
+            summary_writer=train_summ_writer)
 
         # Run the managed session
         with sv.managed_session() as sess:
             for step in xrange(num_steps_per_epoch * config.TRAIN_EPOCHS_COUNT):
                 # At the start of every epoch, show the vital information:
                 if step % num_batches_per_epoch == 0:
-                    print('Epoch {:d}/{:d}', step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT)
+                    print('Epoch {:D}/{:D}'.format(step / num_batches_per_epoch + 1, config.TRAIN_EPOCHS_COUNT))
                     learning_rate_value, accuracy_value = sess.run([lr, accuracy])
                     print('Current Learning Rate: {:f}'.format(learning_rate_value))
-                    print('Current Streaming Accuracy: {:f}', accuracy_value)
+                    print('Current Streaming Accuracy: {:f}'.format(accuracy_value))
 
                     # optionally, print your logits and predictions for a sanity check that things are going fine.
                     logits_value, probabilities_value, predictions_value, labels_value = sess.run(

@@ -27,9 +27,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     config = helper.parse_config_file(args.config_filename)
-
-    eval_summary_dir = os.path.join("/data/summary/flowers/", config.MODEL_NAME, "eval")
-    checkpoint_dir = os.path.join('/data/checkpoints/flowers/', config.MODEL_NAME)
+    eval_summary_dir = os.path.join("/data/summary/flowers/", config.MODEL_NAME, str(config.TRAIN_LEARNING_RATE), "eval")
+    checkpoint_dir = os.path.join('/data/checkpoints/flowers/', config.MODEL_NAME, str(config.TRAIN_LEARNING_RATE))
 
     # This might take a few minutes.
     with tf.Graph().as_default():
@@ -48,9 +47,8 @@ if __name__ == '__main__':
         predictions = tf.argmax(logits, 1)
 
         # Specify the loss function:
-        one_hot_labels = slim.one_hot_encoding(labels, 5)
-        val_loss = slim.losses.softmax_cross_entropy(logits, one_hot_labels)
-        total_loss = slim.losses.get_total_loss()
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        total_loss = tf.losses.get_total_loss()
 
         # Create some summaries to visualize the training process:
         summary_ops.append(tf.summary.scalar('losses/total_loss', total_loss))
