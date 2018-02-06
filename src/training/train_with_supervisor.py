@@ -54,8 +54,14 @@ def run(config):
         variables_to_restore = slim.get_variables_to_restore(exclude=arg_config.EXCLUDE_NODES)
 
         # Performs the equivalent to tf.nn.sparse_softmax_cross_entropy_with_logits but enhanced with checks
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        total_loss = tf.losses.get_total_loss()  # obtain the regularization losses as well
+        # tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        # # obtain the regularization losses as well
+        # total_loss = slim.losses.get_total_loss()
+
+        # Specify the loss function, this will add regulation loss as well:
+        one_hot_labels = slim.one_hot_encoding(labels, 5)
+        slim.losses.softmax_cross_entropy(logits, one_hot_labels)
+        total_loss = slim.losses.get_total_loss()
 
         # Create the global step for monitoring the learning_rate and training.
         global_step = tf.train.get_or_create_global_step()
