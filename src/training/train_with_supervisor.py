@@ -56,7 +56,8 @@ def run(config):
         variables_to_restore = slim.get_variables_to_restore(exclude=arg_config.EXCLUDE_NODES)
 
         # Performs the equivalent to tf.nn.sparse_softmax_cross_entropy_with_logits but enhanced with checks
-        # tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        tf.losses.get_regularization_loss()
         # # obtain the regularization losses as well
         # total_loss = slim.losses.get_total_loss()
 
@@ -89,9 +90,9 @@ def run(config):
         metrics_op = tf.group(accuracy_update, probabilities)
 
         # Now finally create all the summaries you need to monitor and group them into one summary op.
-        precision, recall, f1, _ = score(labels, predictions)
-        tf.summary.scalar('precision', np.mean(precision))
-        tf.summary.scalar('Recall', np.mean(recall))
+        # precision, recall, f1, _ = score(labels, predictions)
+        # tf.summary.scalar('precision', np.mean(precision))
+        # tf.summary.scalar('Recall', np.mean(recall))
         tf.summary.scalar('losses/total_loss', total_loss)
         tf.summary.scalar('accuracy', accuracy)
         tf.summary.scalar('learning_rate', lr)
