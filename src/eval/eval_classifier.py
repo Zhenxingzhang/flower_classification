@@ -3,16 +3,16 @@ import datetime
 import os
 import sys
 import argparse
-
+import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.slim.nets import inception
 from src.data_preparation import dataset
 from src.utils import helper
 from nets import nets_factory
+from sklearn.metrics import precision_recall_fscore_support as score
 
 sys.path.append("/data/slim/models/research/slim/")
 from datasets import flowers
-from preprocessing import inception_preprocessing
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
@@ -46,6 +46,10 @@ if __name__ == '__main__':
         logits, end_points = net_fn(images)
         predictions = tf.argmax(logits, 1)
 
+        precision, recall, f1, _ = score(labels, predictions)
+        summary_ops.append(tf.summary.scalar('precision', np.mean(precision)))
+        summary_ops.append(tf.summary.scalar('Recall', np.mean(recall)))
+
         # Specify the loss function:
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
         total_loss = tf.losses.get_total_loss()
@@ -53,23 +57,23 @@ if __name__ == '__main__':
         # Create some summaries to visualize the training process:
         summary_ops.append(tf.summary.scalar('losses/total_loss', total_loss))
 
-        # correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
-        # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        # summary_ops.append(tf.summary.scalar('accuracy', accuracy))
+        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        summary_ops.append(tf.summary.scalar('accuracy', accuracy))
 
         # Choose the metrics to compute:
-        names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-            "accuracy": tf.metrics.accuracy(labels, predictions),
-            'precision': slim.metrics.streaming_precision(predictions, labels),
-            'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
-        })
+        # names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
+        #     "accuracy": tf.metrics.accuracy(labels, predictions),
+        #     # 'precision': slim.metrics.streaming_precision(predictions, labels),
+        #     # 'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
+        # })
 
         # Create the summary ops such that they also print out to std output:
-        for metric_name, metric_value in names_to_values.iteritems():
-            print(metric_name)
-            op = tf.summary.scalar(metric_name, metric_value)
-            op = tf.Print(op, [metric_value], metric_name)
-            summary_ops.append(op)
+        # for metric_name, metric_value in names_to_values.iteritems():
+        #     print(metric_name)
+        #     op = tf.summary.scalar(metric_name, metric_value)
+        #     op = tf.Print(op, [metric_value], metric_name)
+        #     summary_ops.append(op)
 
         num_examples = 200
         num_batches = math.ceil(num_examples / config.EVAL_BATCH_SIZE)
@@ -84,6 +88,6 @@ if __name__ == '__main__':
             checkpoint_dir,
             eval_summary_dir,
             num_evals=num_batches,
-            eval_op=names_to_updates.values(),
+            #eval_op=names_to_updates.values(),
             summary_op=tf.summary.merge(summary_ops),
             eval_interval_secs=eval_interval_secs)

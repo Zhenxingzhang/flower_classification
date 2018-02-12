@@ -8,8 +8,10 @@ from src.utils import helper
 
 from src.data_preparation import dataset
 from nets import nets_factory
+from sklearn.metrics import precision_recall_fscore_support as score
 
 import tensorflow as tf
+import numpy as np
 import os
 import time
 import logging
@@ -87,6 +89,9 @@ def run(config):
         metrics_op = tf.group(accuracy_update, probabilities)
 
         # Now finally create all the summaries you need to monitor and group them into one summary op.
+        precision, recall, f1, _ = score(labels, predictions)
+        tf.summary.scalar('precision', np.mean(precision))
+        tf.summary.scalar('Recall', np.mean(recall))
         tf.summary.scalar('losses/total_loss', total_loss)
         tf.summary.scalar('accuracy', accuracy)
         tf.summary.scalar('learning_rate', lr)
@@ -111,8 +116,8 @@ def run(config):
         # Now we create a saver function that actually restores the variables from a checkpoint file in a sess
         saver = tf.train.Saver(variables_to_restore)
 
-        def restore_fn(sess):
-            return saver.restore(sess, config.PRETAIN_MODEL_PATH)
+        def restore_fn(sess_):
+            return saver.restore(sess_, config.PRETAIN_MODEL_PATH)
 
         train_summ_writer = tf.summary.FileWriter(train_summary_dir, graph)
 
