@@ -56,25 +56,25 @@ if __name__ == '__main__':
         # Create some summaries to visualize the training process:
         summary_ops.append(tf.summary.scalar('losses/entropy_loss', entropy_loss))
 
-        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        summary_ops.append(tf.summary.scalar('accuracy', accuracy))
+        # correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        # summary_ops.append(tf.summary.scalar('accuracy', accuracy))
 
         # Choose the metrics to compute:
-        # names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        #     "accuracy": tf.metrics.accuracy(labels, predictions),
-        #     # 'precision': slim.metrics.streaming_precision(predictions, labels),
-        #     # 'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
-        # })
+        names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
+            "accuracy": tf.metrics.accuracy(labels, predictions),
+            # 'precision': slim.metrics.streaming_precision(predictions, labels),
+            # 'Recall@1': slim.metrics.streaming_recall_at_k(logits, labels, 1)
+        })
 
         # Create the summary ops such that they also print out to std output:
-        # for metric_name, metric_value in names_to_values.iteritems():
-        #     print(metric_name)
-        #     op = tf.summary.scalar(metric_name, metric_value)
-        #     op = tf.Print(op, [metric_value], metric_name)
-        #     summary_ops.append(op)
+        for metric_name, metric_value in names_to_values.iteritems():
+            print(metric_name)
+            op = tf.summary.scalar(metric_name, metric_value)
+            op = tf.Print(op, [metric_value], metric_name)
+            summary_ops.append(op)
 
-        num_examples = 200
+        num_examples = 100
         num_batches = math.ceil(num_examples / config.EVAL_BATCH_SIZE)
 
         # Setup the global step.
@@ -87,6 +87,6 @@ if __name__ == '__main__':
             checkpoint_dir,
             eval_summary_dir,
             num_evals=num_batches,
-            #eval_op=names_to_updates.values(),
+            eval_op=names_to_updates.values(),
             summary_op=tf.summary.merge(summary_ops),
             eval_interval_secs=eval_interval_secs)

@@ -17,7 +17,7 @@ TRAIN:
     TF_RECORDS_PATH : "/data/flowers"
 
 EVAL:
-    BATCH_SIZE : 200
+    BATCH_SIZE : 100
     TF_RECORDS : "/data/flowers"
 
 
