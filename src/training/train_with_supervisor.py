@@ -50,7 +50,7 @@ def run(config):
         net_fn = nets_factory.get_network_fn(
             config.PRETAIN_MODEL,
             dataset.num_classes,
-            weight_decay=0.001,
+            weight_decay=config.L2_WEIGHT_DECAY,
             is_training=True)
 
         logits, end_points = net_fn(images)
