@@ -47,7 +47,12 @@ def run(config):
         decay_steps = int(config.TRAIN_EPOCHS_BEFORE_DECAY * num_steps_per_epoch)
 
         # Create the model inference
-        net_fn = nets_factory.get_network_fn(config.PRETAIN_MODEL, dataset.num_classes, is_training=True)
+        net_fn = nets_factory.get_network_fn(
+            config.PRETAIN_MODEL,
+            dataset.num_classes,
+            weight_decay=0.001,
+            is_training=True)
+
         logits, end_points = net_fn(images)
 
         # Define the scopes that you want to exclude for restoration
@@ -56,15 +61,20 @@ def run(config):
         variables_to_restore = slim.get_variables_to_restore(exclude=arg_config.EXCLUDE_NODES)
 
         # Performs the equivalent to tf.nn.sparse_softmax_cross_entropy_with_logits but enhanced with checks
-        tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        tf.losses.get_regularization_loss()
-        # # obtain the regularization losses as well
-        # total_loss = slim.losses.get_total_loss()
+        entropy_loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        tf.summary.scalar('losses/entropy_loss', entropy_loss)
 
-        # Specify the loss function, this will add regulation loss as well:
-        one_hot_labels = slim.one_hot_encoding(labels, 5)
-        slim.losses.softmax_cross_entropy(logits, one_hot_labels)
-        total_loss = slim.losses.get_total_loss()
+        regular_loss = tf.losses.get_regularization_loss()
+        tf.summary.scalar('losses/regular_loss', regular_loss)
+
+        # obtain the regularization losses as well
+        total_loss = tf.losses.get_total_loss()
+        tf.summary.scalar('losses/total_loss', total_loss)
+
+        # # Specify the loss function, this will add regulation loss as well:
+        # one_hot_labels = slim.one_hot_encoding(labels, 5)
+        # slim.losses.softmax_cross_entropy(logits, one_hot_labels)
+        # total_loss = slim.losses.get_total_loss()
 
         # Create the global step for monitoring the learning_rate and training.
         global_step = tf.train.get_or_create_global_step()
@@ -93,7 +103,6 @@ def run(config):
         # precision, recall, f1, _ = score(labels, predictions)
         # tf.summary.scalar('precision', np.mean(precision))
         # tf.summary.scalar('Recall', np.mean(recall))
-        tf.summary.scalar('losses/total_loss', total_loss)
         tf.summary.scalar('accuracy', accuracy)
         tf.summary.scalar('learning_rate', lr)
         my_summary_op = tf.summary.merge_all()

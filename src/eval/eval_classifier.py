@@ -46,16 +46,15 @@ if __name__ == '__main__':
         logits, end_points = net_fn(images)
         predictions = tf.argmax(logits, 1)
 
-        precision, recall, f1, _ = score(labels, predictions)
-        summary_ops.append(tf.summary.scalar('precision', np.mean(precision)))
-        summary_ops.append(tf.summary.scalar('Recall', np.mean(recall)))
+        # precision, recall, f1, _ = score(labels, predictions)
+        # summary_ops.append(tf.summary.scalar('precision', np.mean(precision)))
+        # summary_ops.append(tf.summary.scalar('Recall', np.mean(recall)))
 
         # Specify the loss function:
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        total_loss = tf.losses.get_total_loss()
+        entropy_loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
 
         # Create some summaries to visualize the training process:
-        summary_ops.append(tf.summary.scalar('losses/total_loss', total_loss))
+        summary_ops.append(tf.summary.scalar('losses/entropy_loss', entropy_loss))
 
         correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
