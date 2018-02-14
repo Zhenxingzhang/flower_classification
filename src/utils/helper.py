@@ -24,9 +24,11 @@ def parse_config_file(config_filename):
     arg_config.TRAIN_TF_RECORDS = str(cfg["TRAIN"]["TF_RECORDS_PATH"])
     arg_config.TRAIN_EPOCHS_BEFORE_DECAY = float(cfg["TRAIN"]["TRAIN_EPOCHS_BEFORE_DECAY"])
     arg_config.TRAIN_RATE_DECAY_FACTOR = float(cfg["TRAIN"]["TRAIN_RATE_DECAY_FACTOR"])
+    arg_config.L2_WEIGHT_DECAY = float(cfg["TRAIN"]["L2_WEIGHT_DECAY"])
 
     arg_config.EVAL_BATCH_SIZE = cfg["EVAL"]["BATCH_SIZE"]
     arg_config.EVAL_TF_RECORDS = str(cfg["EVAL"]["TF_RECORDS"])
+    arg_config.EVAL_OUTPUT = str(cfg["EVAL"]["OUTPUT_PATH"])
 
     return arg_config
 
