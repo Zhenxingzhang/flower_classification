@@ -59,8 +59,6 @@ def run(config):
         logits, end_points = net_fn(images)
 
         # Define the scopes that you want to exclude for restoration
-        # exclude = ['InceptionResnetV2/Logits', 'InceptionResnetV2/AuxLogits']
-        # exclude = ["InceptionV1/Logits", "InceptionV1/AuxLogits"]
         variables_to_restore = slim.get_variables_to_restore(exclude=arg_config.EXCLUDE_NODES)
 
         # Performs the equivalent to tf.nn.sparse_softmax_cross_entropy_with_logits but enhanced with checks

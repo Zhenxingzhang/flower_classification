@@ -16,7 +16,7 @@ SenzaInfo:
         Default: "zalando-stups-mint-{{AccountInfo.AccountID}}-{{AccountInfo.Region}}"
     - ScalyrAccountKey:
         Description: "The Scalyr Account Key for logs"
-        Default: "0rVCXmlZATwOtCfiEtAad3qPutBsDYD1wsI5Qq0zlodM-"
+        Default: ""
     - JupyterPassword:
         Description: "The Password required to gain access to your notebook"
         Default: "abc"

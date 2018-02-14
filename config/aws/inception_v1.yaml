@@ -19,13 +19,15 @@ TRAIN:
     TRAIN_EPOCHS_BEFORE_DECAY: 10
     TRAIN_RATE_DECAY_FACTOR: 0.7
     TF_RECORDS_PATH : "/data/flowers"
+    L2_WEIGHT_DECAY: 0.001
 
 EVAL:
     BATCH_SIZE : 100
     TF_RECORDS : "/data/flowers"
+    OUTPUT_PATH : "/data/outputs/flowers/eval/"
 
 
 TEST:
     BATCH_SIZE : 200
     TF_RECORDS : ""
-    OUTPUT_PATH : "/data/outputs/inception_resnet_v2_flowers"
+    OUTPUT_PATH : "/data/outputs/flowers/"
