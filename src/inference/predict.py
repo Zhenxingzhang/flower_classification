@@ -21,9 +21,10 @@ def predict_set(config):
         print("Model not exist: {}".format(model_path))
         exit()
 
-    output_path = os.path.join(config.EVAL_OUTPUT, config.MODEL_NAME, "eval_results.csv")
+    output_path = os.path.join(config.EVAL_OUTPUT, config.MODEL_NAME)
     if not os.path.exists(output_path):
         os.mkdir(output_path)
+    eval_output = os.path.join(output_path, "eval_results.csv")
 
     with tf.Graph().as_default():
         tf.logging.set_verbosity(tf.logging.INFO)  # Set the verbosity to INFO level
@@ -49,19 +50,25 @@ def predict_set(config):
         variables_to_restore = slim.get_variables_to_restore()
 
         # Now we create a saver function that actually restores the variables from a checkpoint file in a sess
-        saver = tf.train.Saver(variables_to_restore)
+        checkpoint_path = tf.train.latest_checkpoint(model_path)
+        init_fn = slim.assign_from_checkpoint_fn(
+            checkpoint_path,
+            variables_to_restore)
 
-        with tf.Session() as sess, open(output_path, 'w') as f:
-            saver.restore(sess, tf.train.latest_checkpoint(model_path))
-            print("Restore model from: {}".format(model_path))
+        with tf.Session() as sess, open(eval_output, 'w') as f:
+            with slim.queues.QueueRunners(sess):
+                sess.run(tf.initialize_local_variables())
+                init_fn(sess)
+                print("Restore model from: {}".format(model_path))
 
-            writer = csv.writer(f)
-            writer.writerow(["y_true", "preds"])
-            while True:
-                y_true, preds = sess.run([labels, predictions])
-                results = zip(y_true, preds)
-                writer.writerows("{}, {}".format(row[0], row[1]) for row in results)
-            print("Prediction finished.")
+                writer = csv.writer(f)
+                writer.writerow(["y_true", "preds"])
+                while True:
+                    y_true, preds = sess.run([labels, predictions])
+                    results = zip(y_true, preds)
+                    writer.writerows("{}, {}".format(row[0], row[1]) for row in results)
+                    print("precessing {} records".format(str(y_true.shape[0])))
+        print("Prediction finished.")
 
 
 if __name__ == '__main__':
