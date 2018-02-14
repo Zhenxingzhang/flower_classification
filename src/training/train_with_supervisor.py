@@ -38,8 +38,11 @@ def run(config):
 
         # First create the dataset and load one batch
         train_dataset = flowers.get_split('train', config.TRAIN_TF_RECORDS)
-        images, labels = dataset.load_batch(train_dataset, batch_size=config.TRAIN_BATCH_SIZE,
-                                            height=config.INPUT_HEIGHT, width=config.INPUT_WIDTH)
+        images, labels = dataset.load_batch(
+            train_dataset,
+            batch_size=config.TRAIN_BATCH_SIZE,
+            width=config.INPUT_WIDTH,
+            is_training=True)
 
         # Know the number steps to take before decaying the learning rate and batches per epoch
         num_batches_per_epoch = int(dataset.num_samples / config.TRAIN_BATCH_SIZE)
