@@ -40,10 +40,9 @@ def predict_set(config):
         net_fn = nets_factory.get_network_fn(
             config.PRETAIN_MODEL,
             dataset.num_classes,
-            weight_decay=config.L2_WEIGHT_DECAY,
             is_training=False)
 
-        logits, end_points = net_fn(images)
+        _, end_points = net_fn(images)
         predictions = tf.argmax(end_points['Predictions'], 1)
 
         # Define the scopes that you want to exclude for restoration
@@ -56,8 +55,9 @@ def predict_set(config):
             variables_to_restore)
 
         with tf.Session() as sess, open(eval_output, 'w') as f:
+            print("writing results to {}".format(eval_output))
             with slim.queues.QueueRunners(sess):
-                sess.run(tf.initialize_local_variables())
+                sess.run(tf.local_variables_initializer())
                 init_fn(sess)
                 print("Restore model from: {}".format(model_path))
 
