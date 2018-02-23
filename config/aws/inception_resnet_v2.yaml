@@ -1,5 +1,5 @@
 MODEL:
-    MODEL_NAME: "inception_resnet_v2_flowers"
+    MODEL_NAME: "inception_resnet_v2"
     PRETRAIN_MODEL: "inception_resnet_v2"
     PRETAIN_MODEL_URL: "http://download.tensorflow.org/models/inception_resnet_v2_2016_08_30.tar.gz"
     PRETAIN_MODEL_PATH: "/data/pretain_model/inception_resnet_v2/inception_resnet_v2_2016_08_30.ckpt"

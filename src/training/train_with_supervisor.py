@@ -3,24 +3,17 @@ from tensorflow.contrib import slim
 import sys
 sys.path.append("/data/slim/models/research/slim/")
 from datasets import flowers
-from preprocessing import inception_preprocessing
 from src.utils import helper
 
 from src.data_preparation import dataset
 from nets import nets_factory
-from sklearn.metrics import precision_recall_fscore_support as score
 
 import tensorflow as tf
-import numpy as np
 import os
 import time
-import logging
-import datetime
-import argparse
 
 
 def run(config):
-
     # Specify where the Model, trained on ImageNet, was saved.
 
     # This might take a few minutes.
