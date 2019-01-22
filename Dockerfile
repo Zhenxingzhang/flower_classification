@@ -1,4 +1,4 @@
-FROM gcr.io/tensorflow/tensorflow:1.4.0-gpu
+FROM tensorflow/tensorflow:latest-gpu
 
 COPY run_tools.sh /
 RUN chmod +x /run_tools.sh
