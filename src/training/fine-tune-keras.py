@@ -3,7 +3,7 @@ from tensorflow.python.keras.applications import resnet50
 from tensorflow.python.keras.applications.resnet50 import ResNet50
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Dense, GlobalAveragePooling2D
-from tensorflow.python.keras import backend as K
+from tensorflow.python.keras import optimizers, regularizers
 
 
 def _parse_function(example_proto):
@@ -30,7 +30,7 @@ def _parse_function(example_proto):
 
     # Images need to have the same dimensions for feeding the network
     # this did not include data augmentation.
-    image = resnet50.preprocess_input(image)
+    image = resnet50.preprocess_input(image, mode='tf')
 
     return image, label
 
@@ -53,9 +53,9 @@ if __name__=="__main__":
         "/data/flowers/flowers_validation_00002-of-00005.tfrecord",
         "/data/flowers/flowers_validation_00003-of-00005.tfrecord",
         "/data/flowers/flowers_validation_00004-of-00005.tfrecord"
-    ]).map(_parse_function).batch(32)
+    ]).map(_parse_function).batch(32).repeat()
 
-    # iterator = train_dataset.make_initializable_iterator()
+    # iterator = val_dataset.make_initializable_iterator()
     # (imgs, labels) = iterator.get_next()
     #
     # sess = tf.keras.backend.get_session()
@@ -70,7 +70,7 @@ if __name__=="__main__":
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
     # let's add a fully-connected layer
-    x = Dense(1024, activation='relu')(x)
+    x = Dense(64, activation='relu', activity_regularizer=regularizers.l1(0.00))(x)
     # and a logistic layer -- let's say we have 200 classes
     predictions = Dense(5, activation='softmax')(x)
 
@@ -82,19 +82,15 @@ if __name__=="__main__":
     for layer in base_model.layers:
         layer.trainable = False
 
+    opt = optimizers.Adam(lr=0.005, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+
     # compile the model (should be done *after* setting layers to non-trainable)
-    model.compile(optimizer='rmsprop',
+    model.compile(optimizer=opt,
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
     # train the model on the new data for a few epochs
-    model.fit(train_dataset, epochs=10, steps_per_epoch=30
-              # validation_data=val_dataset, validation_steps=1
+    model.fit(train_dataset, epochs=10, steps_per_epoch=30,
+              validation_data=val_dataset, validation_steps=3
               )
-
-    print(tf.get_default_graph().get_tensor_by_name("Const:0"))
-    print(tf.get_default_graph().get_tensor_by_name("FlatMapDataset_1:0"))
-
-    # for n in tf.get_default_graph().as_graph_def().node:
-    #     print(n.name)
 
