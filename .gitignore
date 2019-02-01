@@ -104,3 +104,5 @@ ENV/
 .DS_Store
 setup/
 src/.DS_Store
+logdir/
+graphpb.txt
